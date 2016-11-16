@@ -1,8 +1,6 @@
 typeset -A vagrant_name
 vagrant_name=( \
-  hoge 44bf64d \
-  foo d4ecd46 \
-  bar 69a5989
+
 )
 
 function error_command() {
