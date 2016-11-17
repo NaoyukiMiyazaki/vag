@@ -48,12 +48,56 @@ function _set() {
 }
 
 function _unset() {
-  echo "start vag ${FUNCNAME[0]} $1"
-  echo "finish vag ${FUNCNAME[0]} $1"
+  local config_array=$(read_config)
+  local ID=""
+  local NAME=""
+
+  echo "searching ID = $1 or NAME = $1..."
+  for config in ${config_array[@]}; do
+    local name=`echo $config | cut -d "=" -f1`
+    local id_semi=`echo $config | cut -d "=" -f2`
+    local id=`echo $id_semi | cut -d ";" -f1`
+
+    if [ $1 = $name ]; then
+      NAME=$1
+      echo "$name (id:$id)"
+    fi
+    if [ $1 = $id ]; then
+      ID=$1
+      echo "$name (id:$id)"
+    fi
+
+  done
+
+  if [ "$ID" = "" -a "$NAME" = "" ]; then
+    echo "ID = $1 or NAME = $1 Not Found"
+    return 0
+  fi
+
+  echo "unset OK? y or n : \c"
+  read ans
+  if [ $ans = "y" ]; then
+    if [ -n "$ID" ]; then
+      sed -i".tmp" -e "/${ID}/d" ./.vag_config
+    fi
+
+    if [ -n "$NAME" ]; then
+      sed -i".tmp" -e "/${NAME}/d" ./.vag_config
+    fi
+  else
+    return 0
+  fi
 }
 
 function display_name_list() {
-  echo "displaylist"
+  local config_array=$(read_config)
+  for config in ${config_array[@]}; do
+    local name=`echo $config | cut -d "=" -f1`
+    local id_semi=`echo $config | cut -d "=" -f2`
+    local id=`echo $id_semi | cut -d ";" -f1`
+    echo "$name (id:$id)"
+  done
+  return 0
 }
 
 function command_error() {
@@ -75,13 +119,7 @@ return 1
 function name_error() {
   echo "$1 name does not exist"
   echo ------name list-------
-  local config_array=$(read_config)
-  for config in ${config_array[@]}; do
-    local name=`echo $config | cut -d "=" -f1`
-    local id_semi=`echo $config | cut -d "=" -f2`
-    local id=`echo $id_semi | cut -d ";" -f1`
-    echo "$name (id:$id)"
-  done
+  display_name_list
   return 1
 }
 
@@ -116,7 +154,7 @@ case $1 in
   halt ) _halt $2 ;;
   set ) _set $2 $3 ;;
   unset ) _unset $2 ;;
-  list ) displaylist ;;
+  list ) display_name_list ;;
   test ) name_error ;;
   * ) command_error ;;
 esac
