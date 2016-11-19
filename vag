@@ -1,26 +1,28 @@
 #!/bin/sh
 
-VAG_DIR_PATH=$HOME/.vag
-VAG_CONFIG_PATH=$VAG_DIR_PATH/vag_config
+_VAG_CONFIG_DIR_NAME=.vag
+_VAG_DIR_PATH=$HOME/$_VAG_CONFIG_DIR_NAME
+_VAG_CONFIG_FILE_NAME=vag_config
+_VAG_CONFIG_PATH=$_VAG_DIR_PATH/$_VAG_CONFIG_FILE_NAME
 
 function _init() {
-  if [ -e $VAG_CONFIG_PATH ]; then
-    echo "すでにvag_configが存在します"
+  if [ -e $_VAG_CONFIG_PATH ]; then
+    echo "$_VAG_CONFIG_PATH already exists"
     return 1
   fi
 
-  if [ -e $VAG_DIR_PATH ]; then
-    touch $VAG_CONFIG_PATH
+  if [ -e $_VAG_DIR_PATH ]; then
+    touch $_VAG_CONFIG_PATH
     return 0
   else
-    mkdir $VAG_DIR_PATH
-    touch $VAG_CONFIG_PATH
+    mkdir $_VAG_DIR_PATH
+    touch $_VAG_CONFIG_PATH
     return 0
   fi
 }
 
 function check_init() {
-  if [ ! -e $VAG_CONFIG_PATH ]; then
+  if [ ! -e $_VAG_CONFIG_PATH ]; then
     echo "usage:"
     echo "1: $0 init"
     echo "2: $0 set [name] [id]"
@@ -32,7 +34,7 @@ function check_init() {
 function _up() {
   check_init
 
-  . $VAG_CONFIG_PATH
+  . $_VAG_CONFIG_PATH
   eval ID=\"\$$1\"
   if [ -z $ID ]; then
     name_error $1
@@ -45,7 +47,7 @@ function _up() {
 function _ssh() {
   check_init
 
-  . $VAG_CONFIG_PATH
+  . $_VAG_CONFIG_PATH
   eval ID=\"\$$1\"
   if [ -z $ID ]; then
     name_error $1
@@ -58,7 +60,7 @@ function _ssh() {
 function _suspend() {
   check_init
 
-  . $VAG_CONFIG_PATH
+  . $_VAG_CONFIG_PATH
   eval ID=\"\$$1\"
   if [ -z $ID ]; then
     name_error $1
@@ -71,7 +73,7 @@ function _suspend() {
 function _reload() {
   check_init
 
-  . $VAG_CONFIG_PATH
+  . $_VAG_CONFIG_PATH
   eval ID=\"\$$1\"
   if [ -z $ID ]; then
     name_error $1
@@ -84,7 +86,7 @@ function _reload() {
 function _halt() {
   check_init
 
-  . $VAG_CONFIG_PATH
+  . $_VAG_CONFIG_PATH
   eval ID=\"\$$1\"
   if [ -z $ID ]; then
     name_error $1
@@ -103,7 +105,7 @@ function _set() {
     return 1
   fi
 
-  echo "${1}=${2}" >>$VAG_CONFIG_PATH
+  echo "${1}=${2}" >>$_VAG_CONFIG_PATH
   echo "--setting--"
   display_name_list
 }
@@ -140,11 +142,11 @@ function _unset() {
   read ans
   if [ $ans = "y" ]; then
     if [ -n "$ID" ]; then
-      sed -i".tmp" -e "/${ID}/d" $VAG_CONFIG_PATH
+      sed -i".tmp" -e "/${ID}/d" $_VAG_CONFIG_PATH
     fi
 
     if [ -n "$NAME" ]; then
-      sed -i".tmp" -e "/${NAME}/d" $VAG_CONFIG_PATH
+      sed -i".tmp" -e "/${NAME}/d" $_VAG_CONFIG_PATH
     fi
   else
     return 0
@@ -174,6 +176,7 @@ function command_error() {
 cat <<_EOS_
 commad not fount
 --command list--
+$0 init
 $0 up [name]
 $0 ssh [name]
 $0 suspend [name]
@@ -199,7 +202,7 @@ function read_config() {
   local line=""
   local name_array=()
 
-  if [ ! -r $VAG_CONFIG_PATH ]; then
+  if [ ! -r $_VAG_CONFIG_PATH ]; then
     echo 'vag_configが見つからないか、または読み込み権限がありませんでした。処理を中断します。'
     exit 101
   fi
@@ -211,7 +214,7 @@ function read_config() {
     else
       name="${name} $line"
     fi
-  done <$VAG_CONFIG_PATH
+  done <$_VAG_CONFIG_PATH
   local name_array=($name)
   echo ${name_array[@]}
   return 0
