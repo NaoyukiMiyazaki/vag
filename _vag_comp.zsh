@@ -18,7 +18,7 @@ function _vag_comp() {
   local -a cmds=('init' 'up' 'ssh' 'suspend' 'reload' 'halt' 'set' 'unset' 'list' 'status')
   local -a names=($(get_names))
 
-  _arguments -C '1: :->commands' '2: :->modes'
+  _arguments '1: :->commands' '2: :->modes'
 
   case $state in
     commands)  _describe -t commands "subcommand" cmds ;;

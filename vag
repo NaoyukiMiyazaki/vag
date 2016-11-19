@@ -6,6 +6,20 @@ _VAG_CONFIG_FILE_NAME=vag_config
 _VAG_CONFIG_PATH=$_VAG_DIR_PATH/$_VAG_CONFIG_FILE_NAME
 _VAG_ZSH_COMP_PATH=
 
+function _add_zsh_comp() {
+  local ZSHRC_PATH=$HOME/.zshrc
+  echo "\n" >> $ZSHRC_PATH
+  echo "###vag command comp file###" >> $ZSHRC_PATH
+  echo ". /Users/NaoyukiMiyazaki/PlayGround/Prototype/vag/_vag_comp.zsh" >> $ZSHRC_PATH
+}
+
+function _add_bash_comp() {
+  local BASHRC_PATH=$HOME/.bashrc
+  echo "\n" >> $BASHRC_PATH
+  echo "###vag command comp file###" >> $BASHRC_PATH
+  echo ". /Users/NaoyukiMiyazaki/PlayGround/Prototype/vag/_vag_comp.bash" >> $BASHRC_PATH
+}
+
 function _init() {
   if [ -e $_VAG_CONFIG_PATH ]; then
     echo "$_VAG_CONFIG_PATH already exists"
@@ -19,13 +33,10 @@ function _init() {
     touch $_VAG_CONFIG_PATH
   fi
 
-  return 0
-}
+  _add_zsh_comp
+  _add_bash_comp
 
-function _add_comp_zsh() {
-  echo "\n" >> $HOME/.zshrc
-  echo "###vag command comp file###" >> $HOME/.zshrc
-  echo ". /Users/NaoyukiMiyazaki/PlayGround/Prototype/vag/_vag_comp" >> $HOME/.zshrc
+  return 0
 }
 
 function check_init() {
@@ -225,10 +236,6 @@ function read_config() {
   local name_array=($name)
   echo ${name_array[@]}
   return 0
-}
-
-function _comp_func() {
-  COMPREPLY=(aaa bbb ccc)
 }
 
 case $1 in
