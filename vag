@@ -4,6 +4,7 @@ _VAG_CONFIG_DIR_NAME=.vag
 _VAG_DIR_PATH=$HOME/$_VAG_CONFIG_DIR_NAME
 _VAG_CONFIG_FILE_NAME=vag_config
 _VAG_CONFIG_PATH=$_VAG_DIR_PATH/$_VAG_CONFIG_FILE_NAME
+_VAG_ZSH_COMP_PATH=
 
 function _init() {
   if [ -e $_VAG_CONFIG_PATH ]; then
@@ -13,12 +14,18 @@ function _init() {
 
   if [ -e $_VAG_DIR_PATH ]; then
     touch $_VAG_CONFIG_PATH
-    return 0
   else
     mkdir $_VAG_DIR_PATH
     touch $_VAG_CONFIG_PATH
-    return 0
   fi
+
+  return 0
+}
+
+function _add_comp_zsh() {
+  echo "\n" >> $HOME/.zshrc
+  echo "###vag command comp file###" >> $HOME/.zshrc
+  echo ". /Users/NaoyukiMiyazaki/PlayGround/Prototype/vag/_vag_comp" >> $HOME/.zshrc
 }
 
 function check_init() {
@@ -176,16 +183,16 @@ function command_error() {
 cat <<_EOS_
 commad not fount
 --command list--
-$0 init
-$0 up [name]
-$0 ssh [name]
-$0 suspend [name]
-$0 reload [name]
-$0 halt [name]
-$0 set [name] [id]
-$0 unset [name or id]
-$0 status
-$0 list
+${0##*/} init
+${0##*/} up [name]
+${0##*/} ssh [name]
+${0##*/} suspend [name]
+${0##*/} reload [name]
+${0##*/} halt [name]
+${0##*/} set [name] [id]
+${0##*/} unset [name or id]
+${0##*/} status
+${0##*/} list
 _EOS_
 return 1
 }
@@ -220,6 +227,10 @@ function read_config() {
   return 0
 }
 
+function _comp_func() {
+  COMPREPLY=(aaa bbb ccc)
+}
+
 case $1 in
   init ) _init ;;
   up ) _up $2 ;;
@@ -231,5 +242,6 @@ case $1 in
   unset ) _unset $2 ;;
   list ) display_name_list ;;
   status ) display_global_status ;;
+  test ) _test ;;
   * ) command_error ;;
 esac
