@@ -11,8 +11,6 @@ function _setup() {
     return 1
   fi
 
-  chmod 755 ./${0##*/}
-  # chmod 755 ./_vag_comp.zsh ./_vag_comp.bash
   cp ./${0##*/} /usr/local/bin/
   _setup2
   return 0
@@ -43,16 +41,22 @@ function _setup2() {
 function _add_zsh_comp() {
   insert_var zsh
   local ZSHRC_PATH=$HOME/.zshrc
-  echo "\n###vag command comp file###" >> $ZSHRC_PATH
-  echo ". $_VAG_DIR_PATH/_vag_comp.zsh" >> $ZSHRC_PATH
+  grep "###vag command comp file###" $ZSHRC_PATH >& /dev/null
+  if [ $? -ne 0 ]; then
+    echo "\n###vag command comp file###" >> $ZSHRC_PATH && \
+    echo ". $_VAG_DIR_PATH/_vag_comp.zsh" >> $ZSHRC_PATH
+  fi
   return 0
 }
 
 function _add_bash_comp() {
   insert_var bash
   local BASHRC_PATH=$HOME/.bashrc
-  echo "\n###vag command comp file###" >> $BASHRC_PATH
-  echo ". $_VAG_DIR_PATH/_vag_comp.bash" >> $BASHRC_PATH
+  grep "###vag command comp file###" $BASHRC_PATH >& /dev/null
+  if [ $? -ne 0 ]; then
+    echo "\n###vag command comp file###" >> $BASHRC_PATH && \
+    echo ". $_VAG_DIR_PATH/_vag_comp.bash" >> $BASHRC_PATH
+  fi
   return 0
 }
 
