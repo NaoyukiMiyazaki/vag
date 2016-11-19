@@ -1,0 +1,251 @@
+#!/bin/sh
+
+_VERSION="1.0.0"
+_VAG_CONFIG_DIR_NAME=.vag
+_VAG_DIR_PATH=$HOME/$_VAG_CONFIG_DIR_NAME
+_VAG_CONFIG_FILE_NAME=vag_config
+_VAG_CONFIG_PATH=$_VAG_DIR_PATH/$_VAG_CONFIG_FILE_NAME
+
+function _setup() {
+  if [ -e /usr/local/bin/${0##*/} ]; then
+    echo "/usr/local/bin/${0##*/} already exists"
+    return 1
+  fi
+
+  cp ./${0##*/} /usr/local/bin/
+  _setup2
+  return 0
+}
+
+function _setup2() {
+  if [ -e $_VAG_CONFIG_PATH ]; then
+    echo "$_VAG_CONFIG_PATH already exists"
+    return 1
+  fi
+
+  if [ -e $_VAG_DIR_PATH ]; then
+    touch $_VAG_CONFIG_PATH
+  else
+    mkdir $_VAG_DIR_PATH
+    touch $_VAG_CONFIG_PATH
+  fi
+
+  chmod 666 $_VAG_CONFIG_PATH
+  _add_zsh_comp
+  _add_bash_comp
+
+  echo 'setup finished then restart shell'
+  exec $SHELL
+  return 0
+}
+
+function _add_zsh_comp() {
+  insert_var zsh
+  local ZSHRC_PATH=$HOME/.zshrc
+  grep "###vag command comp file###" $ZSHRC_PATH >& /dev/null
+  if [ $? -ne 0 ]; then
+    echo "\n###vag command comp file###" >> $ZSHRC_PATH && \
+    echo ". $_VAG_DIR_PATH/_vag_comp.zsh" >> $ZSHRC_PATH
+  fi
+  return 0
+}
+
+function _add_bash_comp() {
+  insert_var bash
+  local BASHRC_PATH=$HOME/.bashrc
+  grep "###vag command comp file###" $BASHRC_PATH >& /dev/null
+  if [ $? -ne 0 ]; then
+    echo "\n###vag command comp file###" >> $BASHRC_PATH && \
+    echo ". $_VAG_DIR_PATH/_vag_comp.bash" >> $BASHRC_PATH
+  fi
+  return 0
+}
+
+function insert_var() {
+  text="CONFIG_PATH=$_VAG_CONFIG_PATH\n"
+  echo $text > $_VAG_DIR_PATH/_vag_comp.$1
+  cat ./_vag_comp.$1 >> $_VAG_DIR_PATH/_vag_comp.$1
+}
+
+function _up() {
+  . $_VAG_CONFIG_PATH
+  eval ID=\"\$$1\"
+  if [ -z $ID ]; then
+    name_error $1
+    return 1
+  fi
+
+  vagrant up $ID
+}
+
+function _ssh() {
+  . $_VAG_CONFIG_PATH
+  eval ID=\"\$$1\"
+  if [ -z $ID ]; then
+    name_error $1
+    return 1
+  fi
+
+  vagrant ssh $ID
+}
+
+function _suspend() {
+  . $_VAG_CONFIG_PATH
+  eval ID=\"\$$1\"
+  if [ -z $ID ]; then
+    name_error $1
+    return 1
+  fi
+
+  vagrant suspend $ID
+}
+
+function _reload() {
+  . $_VAG_CONFIG_PATH
+  eval ID=\"\$$1\"
+  if [ -z $ID ]; then
+    name_error $1
+    return 1
+  fi
+
+  vagrant reload $ID
+}
+
+function _halt() {
+  . $_VAG_CONFIG_PATH
+  eval ID=\"\$$1\"
+  if [ -z $ID ]; then
+    name_error $1
+    return 1
+  fi
+
+  vagrant halt $ID
+}
+
+function _set() {
+  if [ ! $# -eq 2 ]; then
+    echo "command error"
+    echo "usage: $0 set [name] [id]"
+    return 1
+  fi
+
+  echo "${1}=${2}" >>$_VAG_CONFIG_PATH
+  echo "--setting--"
+  display_name_list
+}
+
+function _unset() {
+  local config_array=$(read_config)
+  local ID=""
+  local NAME=""
+
+  echo "searching ID = $1 or NAME = $1..."
+  for config in ${config_array[@]}; do
+    local name=`echo $config | cut -d "=" -f1`
+    local id=`echo $config | cut -d "=" -f2`
+
+    if [ $1 = $name ]; then
+      NAME=$1
+      echo "$name (id:$id)"
+    fi
+    if [ $1 = $id ]; then
+      ID=$1
+      echo "$name (id:$id)"
+    fi
+
+  done
+
+  if [ "$ID" = "" -a "$NAME" = "" ]; then
+    echo "Not Found"
+    return 0
+  fi
+
+  echo "unset OK? y or n : \c"
+  read ans
+  if [ $ans = "y" ]; then
+    if [ -n "$ID" ]; then
+      sed -i".tmp" -e "/${ID}/d" $_VAG_CONFIG_PATH
+    fi
+
+    if [ -n "$NAME" ]; then
+      sed -i".tmp" -e "/${NAME}/d" $_VAG_CONFIG_PATH
+    fi
+  else
+    return 0
+  fi
+
+  echo "--setting--"
+  display_name_list
+}
+
+function display_name_list() {
+  local config_array=$(read_config)
+  for config in ${config_array[@]}; do
+    local name=`echo $config | cut -d "=" -f1`
+    local id=`echo $config | cut -d "=" -f2`
+    echo "$name (id:$id)"
+  done
+  return 0
+}
+
+function command_error() {
+cat <<_EOS_
+commad not fount
+--command list--
+${0##*/} up [name]
+${0##*/} ssh [name]
+${0##*/} suspend [name]
+${0##*/} reload [name]
+${0##*/} halt [name]
+${0##*/} set [name] [id]
+${0##*/} unset [name or id]
+${0##*/} status
+${0##*/} list
+_EOS_
+return 0
+}
+
+function name_error() {
+  echo "$1 name does not exist"
+  echo ------name list-------
+  display_name_list
+  return 1
+}
+
+function read_config() {
+  local name=""
+  local line=""
+  local name_array=()
+
+  if [ ! -r $_VAG_CONFIG_PATH ]; then
+    echo 'vag_configが見つからないか、または読み込み権限がありませんでした。処理を中断します。'
+    exit 101
+  fi
+
+  while read line
+  do
+    if [ ${#line} -eq 0 ]; then
+      :
+    else
+      name="${name} $line"
+    fi
+  done <$_VAG_CONFIG_PATH
+  local name_array=($name)
+  echo ${name_array[@]}
+  return 0
+}
+
+case $1 in
+  -v | --version ) echo "v$_VERSION" ;;
+  setup ) _setup ;;
+  up ) _up $2 ;;
+  ssh ) _ssh $2 ;;
+  suspend ) _suspend $2 ;;
+  reload ) _reload $2 ;;
+  halt ) _halt $2 ;;
+  set ) _set $2 $3 ;;
+  unset ) _unset $2 ;;
+  list ) display_name_list ;;
+  status ) vagrant global-status ;;
+  * ) command_error ;;
+esac
