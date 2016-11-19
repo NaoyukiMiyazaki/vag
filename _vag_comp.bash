@@ -8,20 +8,21 @@ function get_names() {
       local name=`echo $line | cut -d "=" -f1`
       names=($names $name)
     fi
-  done <$HOME/.vag/vag_config
+  done <$CONFIG_PATH
 
   echo ${names[@]}
 }
 
 function _vag_comp() {
-  local commands="init up ssh suspend reload halt set unset list status"
+  local commands="up ssh suspend reload halt set unset list status"
   local cur=${COMP_WORDS[COMP_CWORD]}
+  local names=($(get_names))
   case "$COMP_CWORD" in
   1) COMPREPLY=( $(compgen -W "$commands" -- $cur) ) ;;
   2)
     case ${COMP_WORDS[1]} in
         init|status|set|unset|list|status) ;;
-        *) COMPREPLY=( $(compgen -W "$(get_names)" -- $cur) ) ;;
+        *) COMPREPLY=( $(compgen -W "$names" -- $cur) ) ;;
     esac
   esac
 }

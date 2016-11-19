@@ -1,1 +1,0 @@
-command not fount --command list-- ./vag init ./vag up [name] ./vag ssh [name] ./vag suspend [name] ./vag reload [name] ./vag halt [name] ./vag set [name] [id] ./vag unset [name or id] ./vag status ./vag list

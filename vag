@@ -4,23 +4,21 @@ _VAG_CONFIG_DIR_NAME=.vag
 _VAG_DIR_PATH=$HOME/$_VAG_CONFIG_DIR_NAME
 _VAG_CONFIG_FILE_NAME=vag_config
 _VAG_CONFIG_PATH=$_VAG_DIR_PATH/$_VAG_CONFIG_FILE_NAME
-_VAG_ZSH_COMP_PATH=
 
-function _add_zsh_comp() {
-  local ZSHRC_PATH=$HOME/.zshrc
-  echo "\n" >> $ZSHRC_PATH
-  echo "###vag command comp file###" >> $ZSHRC_PATH
-  echo ". /Users/NaoyukiMiyazaki/PlayGround/Prototype/vag/_vag_comp.zsh" >> $ZSHRC_PATH
+function _setup() {
+  if [ -e /usr/local/bin/${0##*/} ]; then
+    echo "/usr/local/bin/${0##*/} already exists"
+    return 1
+  fi
+
+  chmod 755 ./${0##*/}
+  # chmod 755 ./_vag_comp.zsh ./_vag_comp.bash
+  cp ./${0##*/} /usr/local/bin/
+  _setup2
+  return 0
 }
 
-function _add_bash_comp() {
-  local BASHRC_PATH=$HOME/.bashrc
-  echo "\n" >> $BASHRC_PATH
-  echo "###vag command comp file###" >> $BASHRC_PATH
-  echo ". /Users/NaoyukiMiyazaki/PlayGround/Prototype/vag/_vag_comp.bash" >> $BASHRC_PATH
-}
-
-function _init() {
+function _setup2() {
   if [ -e $_VAG_CONFIG_PATH ]; then
     echo "$_VAG_CONFIG_PATH already exists"
     return 1
@@ -33,25 +31,38 @@ function _init() {
     touch $_VAG_CONFIG_PATH
   fi
 
+  chmod 666 $_VAG_CONFIG_PATH
   _add_zsh_comp
   _add_bash_comp
 
+  echo 'setup finished then restart shell'
+  exec $SHELL
   return 0
 }
 
-function check_init() {
-  if [ ! -e $_VAG_CONFIG_PATH ]; then
-    echo "usage:"
-    echo "1: $0 init"
-    echo "2: $0 set [name] [id]"
-    echo "3: $0 up [name]"
-    exit 101
-  fi
+function _add_zsh_comp() {
+  insert_var zsh
+  local ZSHRC_PATH=$HOME/.zshrc
+  echo "\n###vag command comp file###" >> $ZSHRC_PATH
+  echo ". $_VAG_DIR_PATH/_vag_comp.zsh" >> $ZSHRC_PATH
+  return 0
+}
+
+function _add_bash_comp() {
+  insert_var bash
+  local BASHRC_PATH=$HOME/.bashrc
+  echo "\n###vag command comp file###" >> $BASHRC_PATH
+  echo ". $_VAG_DIR_PATH/_vag_comp.bash" >> $BASHRC_PATH
+  return 0
+}
+
+function insert_var() {
+  text="CONFIG_PATH=$_VAG_CONFIG_PATH\n"
+  echo $text > $_VAG_DIR_PATH/_vag_comp.$1
+  cat ./_vag_comp.$1 >> $_VAG_DIR_PATH/_vag_comp.$1
 }
 
 function _up() {
-  check_init
-
   . $_VAG_CONFIG_PATH
   eval ID=\"\$$1\"
   if [ -z $ID ]; then
@@ -63,8 +74,6 @@ function _up() {
 }
 
 function _ssh() {
-  check_init
-
   . $_VAG_CONFIG_PATH
   eval ID=\"\$$1\"
   if [ -z $ID ]; then
@@ -76,8 +85,6 @@ function _ssh() {
 }
 
 function _suspend() {
-  check_init
-
   . $_VAG_CONFIG_PATH
   eval ID=\"\$$1\"
   if [ -z $ID ]; then
@@ -89,8 +96,6 @@ function _suspend() {
 }
 
 function _reload() {
-  check_init
-
   . $_VAG_CONFIG_PATH
   eval ID=\"\$$1\"
   if [ -z $ID ]; then
@@ -102,8 +107,6 @@ function _reload() {
 }
 
 function _halt() {
-  check_init
-
   . $_VAG_CONFIG_PATH
   eval ID=\"\$$1\"
   if [ -z $ID ]; then
@@ -115,8 +118,6 @@ function _halt() {
 }
 
 function _set() {
-  check_init
-
   if [ ! $# -eq 2 ]; then
     echo "command error"
     echo "usage: $0 set [name] [id]"
@@ -129,8 +130,6 @@ function _set() {
 }
 
 function _unset() {
-  check_init
-
   local config_array=$(read_config)
   local ID=""
   local NAME=""
@@ -174,13 +173,7 @@ function _unset() {
   display_name_list
 }
 
-function display_global_status() {
-  vagrant global-status
-}
-
 function display_name_list() {
-  check_init
-
   local config_array=$(read_config)
   for config in ${config_array[@]}; do
     local name=`echo $config | cut -d "=" -f1`
@@ -194,7 +187,6 @@ function command_error() {
 cat <<_EOS_
 commad not fount
 --command list--
-${0##*/} init
 ${0##*/} up [name]
 ${0##*/} ssh [name]
 ${0##*/} suspend [name]
@@ -239,7 +231,7 @@ function read_config() {
 }
 
 case $1 in
-  init ) _init ;;
+  setup ) _setup ;;
   up ) _up $2 ;;
   ssh ) _ssh $2 ;;
   suspend ) _suspend $2 ;;
@@ -248,7 +240,6 @@ case $1 in
   set ) _set $2 $3 ;;
   unset ) _unset $2 ;;
   list ) display_name_list ;;
-  status ) display_global_status ;;
-  test ) _test ;;
+  status ) vagrant global-status ;;
   * ) command_error ;;
 esac

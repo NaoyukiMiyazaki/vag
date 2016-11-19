@@ -8,14 +8,14 @@ function get_names() {
       local name=`echo $line | cut -d "=" -f1`
       names=($names $name)
     fi
-  done <$HOME/.vag/vag_config
+  done <$CONFIG_PATH
 
   echo ${names[@]}
 }
 
 function _vag_comp() {
   local state
-  local -a cmds=('init' 'up' 'ssh' 'suspend' 'reload' 'halt' 'set' 'unset' 'list' 'status')
+  local -a cmds=('up' 'ssh' 'suspend' 'reload' 'halt' 'set' 'unset' 'list' 'status')
   local -a names=($(get_names))
 
   _arguments '1: :->commands' '2: :->modes'
@@ -25,7 +25,11 @@ function _vag_comp() {
     modes)
       case $words[2] in
         init|status|set|unset|list|status) ;;
-        *) _values 'names' $names ;;
+        *)
+          case $names in
+            "") ;;
+            *) _values 'names' $names ;;
+          esac
       esac
   esac
 
