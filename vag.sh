@@ -19,11 +19,18 @@ function _init() {
   fi
 }
 
-function _up() {
+function check_init() {
   if [ ! -e $VAG_CONFIG_PATH ]; then
-    echo "$0 vag init"
-    return 1
+    echo "usage:"
+    echo "1: $0 init"
+    echo "2: $0 set [name] [id]"
+    echo "3: $0 up [name]"
+    exit 101
   fi
+}
+
+function _up() {
+  check_init
 
   . $VAG_CONFIG_PATH
   eval ID=\"\$$1\"
@@ -36,10 +43,7 @@ function _up() {
 }
 
 function _ssh() {
-  if [ ! -e $VAG_CONFIG_PATH ]; then
-    echo "$0 vag init"
-    return 1
-  fi
+  check_init
 
   . $VAG_CONFIG_PATH
   eval ID=\"\$$1\"
@@ -52,10 +56,7 @@ function _ssh() {
 }
 
 function _suspend() {
-  if [ ! -e $VAG_CONFIG_PATH ]; then
-    echo "$0 vag init"
-    return 1
-  fi
+  check_init
 
   . $VAG_CONFIG_PATH
   eval ID=\"\$$1\"
@@ -68,10 +69,7 @@ function _suspend() {
 }
 
 function _reload() {
-  if [ ! -e $VAG_CONFIG_PATH ]; then
-    echo "$0 vag init"
-    return 1
-  fi
+  check_init
 
   . $VAG_CONFIG_PATH
   eval ID=\"\$$1\"
@@ -84,10 +82,7 @@ function _reload() {
 }
 
 function _halt() {
-  if [ ! -e $VAG_CONFIG_PATH ]; then
-    echo "$0 vag init"
-    return 1
-  fi
+  check_init
 
   . $VAG_CONFIG_PATH
   eval ID=\"\$$1\"
@@ -100,10 +95,7 @@ function _halt() {
 }
 
 function _set() {
-  if [ ! -e $VAG_CONFIG_PATH ]; then
-    echo "$0 vag init"
-    return 1
-  fi
+  check_init
 
   if [ ! $# -eq 2 ]; then
     echo "command error"
@@ -117,10 +109,7 @@ function _set() {
 }
 
 function _unset() {
-  if [ ! -e $VAG_CONFIG_PATH ]; then
-    echo "$0 vag init"
-    return 1
-  fi
+  check_init
 
   local config_array=$(read_config)
   local ID=""
@@ -170,10 +159,7 @@ function display_global_status() {
 }
 
 function display_name_list() {
-  if [ ! -e $VAG_CONFIG_PATH ]; then
-    echo "$0 vag init"
-    return 0
-  fi
+  check_init
 
   local config_array=$(read_config)
   for config in ${config_array[@]}; do
