@@ -1,53 +1,127 @@
 #!/bin/sh
 
-. ./.vag_config
+VAG_DIR_PATH=$HOME/.vag
+VAG_CONFIG_PATH=$VAG_DIR_PATH/vag_config
+
+function _init() {
+  if [ -e $VAG_CONFIG_PATH ]; then
+    echo "すでにvag_configが存在します"
+    return 1
+  fi
+
+  if [ -e $VAG_DIR_PATH ]; then
+    touch $VAG_CONFIG_PATH
+    return 0
+  else
+    mkdir $VAG_DIR_PATH
+    touch $VAG_CONFIG_PATH
+    return 0
+  fi
+}
 
 function _up() {
-  eval ID=\"\$$1\"
-  if [ "$ID" = "" ]; then
-    name_error $1
+  if [ ! -e $VAG_CONFIG_PATH ]; then
+    echo "$0 vag init"
+    return 1
   fi
-  return
-  echo "start vag ${FUNCNAME[0]} $1 (ID: $ID)"
+
+  . $VAG_CONFIG_PATH
+  eval ID=\"\$$1\"
+  if [ -z $ID ]; then
+    name_error $1
+    return 1
+  fi
+
   vagrant up $ID
-  echo "finish vag ${FUNCNAME[0]} $1"
 }
 
 function _ssh() {
+  if [ ! -e $VAG_CONFIG_PATH ]; then
+    echo "$0 vag init"
+    return 1
+  fi
+
+  . $VAG_CONFIG_PATH
   eval ID=\"\$$1\"
-  echo "start vag ${FUNCNAME[0]} $1 (ID: $ID)"
+  if [ -z $ID ]; then
+    name_error $1
+    return 1
+  fi
+
   vagrant ssh $ID
-  echo "finish vag ${FUNCNAME[0]} $1"
 }
 
 function _suspend() {
+  if [ ! -e $VAG_CONFIG_PATH ]; then
+    echo "$0 vag init"
+    return 1
+  fi
+
+  . $VAG_CONFIG_PATH
   eval ID=\"\$$1\"
-  echo "start vag ${FUNCNAME[0]} $1 (ID: $ID)"
+  if [ -z $ID ]; then
+    name_error $1
+    return 1
+  fi
+
   vagrant suspend $ID
-  echo "finish vag ${FUNCNAME[0]} $1"
 }
 
 function _reload() {
+  if [ ! -e $VAG_CONFIG_PATH ]; then
+    echo "$0 vag init"
+    return 1
+  fi
+
+  . $VAG_CONFIG_PATH
   eval ID=\"\$$1\"
-  echo "start vag ${FUNCNAME[0]} $1 (ID: $ID)"
+  if [ -z $ID ]; then
+    name_error $1
+    return 1
+  fi
+
   vagrant reload $ID
-  echo "finish vag ${FUNCNAME[0]} $1"
 }
 
 function _halt() {
+  if [ ! -e $VAG_CONFIG_PATH ]; then
+    echo "$0 vag init"
+    return 1
+  fi
+
+  . $VAG_CONFIG_PATH
   eval ID=\"\$$1\"
-  echo "start vag ${FUNCNAME[0]} $1 (ID: $ID)"
+  if [ -z $ID ]; then
+    name_error $1
+    return 1
+  fi
+
   vagrant halt $ID
-  echo "finish vag ${FUNCNAME[0]} $1"
 }
 
 function _set() {
-  echo "start vag ${FUNCNAME[0]} $1 $2"
-  echo "${1}=${2};" >>./.vag_config
-  echo "finish vag ${FUNCNAME[0]} $1 $2"
+  if [ ! -e $VAG_CONFIG_PATH ]; then
+    echo "$0 vag init"
+    return 1
+  fi
+
+  if [ ! $# -eq 2 ]; then
+    echo "command error"
+    echo "usage: $0 set [name] [id]"
+    return 1
+  fi
+
+  echo "${1}=${2}" >>$VAG_CONFIG_PATH
+  echo "--setting--"
+  display_name_list
 }
 
 function _unset() {
+  if [ ! -e $VAG_CONFIG_PATH ]; then
+    echo "$0 vag init"
+    return 1
+  fi
+
   local config_array=$(read_config)
   local ID=""
   local NAME=""
@@ -55,8 +129,7 @@ function _unset() {
   echo "searching ID = $1 or NAME = $1..."
   for config in ${config_array[@]}; do
     local name=`echo $config | cut -d "=" -f1`
-    local id_semi=`echo $config | cut -d "=" -f2`
-    local id=`echo $id_semi | cut -d ";" -f1`
+    local id=`echo $config | cut -d "=" -f2`
 
     if [ $1 = $name ]; then
       NAME=$1
@@ -70,7 +143,7 @@ function _unset() {
   done
 
   if [ "$ID" = "" -a "$NAME" = "" ]; then
-    echo "ID = $1 or NAME = $1 Not Found"
+    echo "Not Found"
     return 0
   fi
 
@@ -78,23 +151,34 @@ function _unset() {
   read ans
   if [ $ans = "y" ]; then
     if [ -n "$ID" ]; then
-      sed -i".tmp" -e "/${ID}/d" ./.vag_config
+      sed -i".tmp" -e "/${ID}/d" $VAG_CONFIG_PATH
     fi
 
     if [ -n "$NAME" ]; then
-      sed -i".tmp" -e "/${NAME}/d" ./.vag_config
+      sed -i".tmp" -e "/${NAME}/d" $VAG_CONFIG_PATH
     fi
   else
     return 0
   fi
+
+  echo "--setting--"
+  display_name_list
+}
+
+function display_global_status() {
+  vagrant global-status
 }
 
 function display_name_list() {
+  if [ ! -e $VAG_CONFIG_PATH ]; then
+    echo "$0 vag init"
+    return 0
+  fi
+
   local config_array=$(read_config)
   for config in ${config_array[@]}; do
     local name=`echo $config | cut -d "=" -f1`
-    local id_semi=`echo $config | cut -d "=" -f2`
-    local id=`echo $id_semi | cut -d ";" -f1`
+    local id=`echo $config | cut -d "=" -f2`
     echo "$name (id:$id)"
   done
   return 0
@@ -110,7 +194,8 @@ $0 suspend [name]
 $0 reload [name]
 $0 halt [name]
 $0 set [name] [id]
-$0 unset [name]
+$0 unset [name or id]
+$0 status
 $0 list
 _EOS_
 return 1
@@ -128,8 +213,8 @@ function read_config() {
   local line=""
   local name_array=()
 
-  if [ ! -r ./.vag_config ]; then
-    echo '.vag_configが見つからないか、または読み込み権限がありませんでした。処理を中断します。'
+  if [ ! -r $VAG_CONFIG_PATH ]; then
+    echo 'vag_configが見つからないか、または読み込み権限がありませんでした。処理を中断します。'
     exit 101
   fi
 
@@ -140,13 +225,14 @@ function read_config() {
     else
       name="${name} $line"
     fi
-  done <./.vag_config
+  done <$VAG_CONFIG_PATH
   local name_array=($name)
   echo ${name_array[@]}
   return 0
 }
 
 case $1 in
+  init ) _init ;;
   up ) _up $2 ;;
   ssh ) _ssh $2 ;;
   suspend ) _suspend $2 ;;
@@ -155,6 +241,6 @@ case $1 in
   set ) _set $2 $3 ;;
   unset ) _unset $2 ;;
   list ) display_name_list ;;
-  test ) name_error ;;
+  status ) display_global_status ;;
   * ) command_error ;;
 esac
