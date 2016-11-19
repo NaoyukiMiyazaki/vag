@@ -1,14 +1,15 @@
 # vag
 
-vag is global command when vagrant name is default.
+vag is vagrant global command when vagrant name is default.
 
 ## example
 
 ```
-$ chmod a+x vag
-$ cp vag /usr/local/bin/
-$ vag init
+$ git clone git@github.com:NaoyukiMiyazaki/vag.git
+$ cd vag
+$ ./vag setup # create file, copy file
 $ vag status
 $ vag set [name] [id]
 $ vag up [name]
+$ vag halt [name]
 ```

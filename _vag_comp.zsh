@@ -15,7 +15,7 @@ function get_names() {
 
 function _vag_comp() {
   local state
-  local -a cmds=('up' 'ssh' 'suspend' 'reload' 'halt' 'set' 'unset' 'list' 'status')
+  local -a cmds=('up' 'ssh' 'suspend' 'reload' 'halt' 'set' 'unset' 'list' 'status' '-v|--version')
   local -a names=($(get_names))
 
   _arguments '1: :->commands' '2: :->modes'
